@@ -6,6 +6,7 @@ import os
 import wandb
 import hydra
 from omegaconf import DictConfig
+from hydra.utils import get_original_cwd
 
 _steps = [
     "download",
@@ -50,23 +51,52 @@ def go(config: DictConfig):
                 },
             )
 
+        # Apply basic cleaning steps
         if "basic_cleaning" in active_steps:
-            ##################
-            # Implement here #
-            ##################
-            pass
+            basic_cleaning_filepath = os.path.join(get_original_cwd(), 'src', 'basic_cleaning')
+            _ = mlflow.run(
+                basic_cleaning_filepath,
+                "main",
+                env_manager='conda',
+                parameters={
+                    "input_artifact": "sample.csv:latest",
+                    "output_artifact": "clean_sample.csv",
+                    "output_type": "clean_data",
+                    "output_description": "Data after cleaning",
+                    "min_price": config["etl"]["min_price"],
+                    "max_price": config["etl"]["max_price"]
+                },
+            )
 
+        # Apply data tests to ensure data meet specified criteria
         if "data_check" in active_steps:
-            ##################
-            # Implement here #
-            ##################
-            pass
+            data_check_filepath = os.path.join(get_original_cwd(), 'src', 'data_check')
+            _ = mlflow.run(
+                data_check_filepath,
+                "main",
+                env_manager='conda',
+                parameters={
+                    "csv": "clean_sample.csv:latest",
+                    "ref": "clean_sample.csv:reference",
+                    "kl_threshold": config['data_check']['kl_threshold'],
+                    "min_price": config["etl"]["min_price"],
+                    "max_price": config["etl"]["max_price"]
+                },
+            )
 
+        # Split data into training and testing datasets
         if "data_split" in active_steps:
-            ##################
-            # Implement here #
-            ##################
-            pass
+            _ = mlflow.run(
+                f"{config['main']['components_repository']}/train_val_test_split",
+                'main',
+                parameters = {
+                    "input": "clean_sample.csv:latest",
+                    "test_size": config["modeling"]["test_size"],
+                    "random_seed": config["modeling"]["random_seed"],
+                    "stratify_by": config["modeling"]["stratify_by"]
+
+                }
+            )
 
         if "train_random_forest" in active_steps:
 
@@ -78,19 +108,34 @@ def go(config: DictConfig):
             # NOTE: use the rf_config we just created as the rf_config parameter for the train_random_forest
             # step
 
-            ##################
-            # Implement here #
-            ##################
+            train_randforest_filepath = os.path.join(get_original_cwd(), 'src', 'train_random_forest')
+            _ = mlflow.run(
+                train_randforest_filepath,
+                "main",
+                env_manager='conda',
+                parameters={
+                    "trainval_artifact": "trainval_data.csv:latest",
+                    "val_size": config["modeling"]["val_size"],
+                    "random_seed": config['modeling']['random_seed'],
+                    "stratify_by": config["modeling"]["stratify_by"],
+                    "rf_config": rf_config,
+                    "max_tfidf_features": config["modeling"]["max_tfidf_features"],
+                    "output_artifact": "random_forest_export"
+                }
+            )
 
-            pass
 
         if "test_regression_model" in active_steps:
-
-            ##################
-            # Implement here #
-            ##################
-
-            pass
+            test_regress_filepath = os.path.join(get_original_cwd(), 'components', 'test_regression_model')
+            _ = mlflow.run(
+                test_regress_filepath,
+                "main",
+                env_manager='conda',
+                parameters={
+                    "mlflow_model": "random_forest_export:prod",
+                    "test_dataset": "test_data.csv:latest"
+                },
+            )
 
 
 if __name__ == "__main__":
