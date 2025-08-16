@@ -6,7 +6,11 @@ to be retrained with the same cadence, necessitating an end-to-end pipeline that
 
 In this project you will build such a pipeline.
 
-W&B link: https://wandb.ai/cpipes3-western-governors-university/nyc_airbnb?nw=nwusercpipes3
+## Project Links
+
+- [Weights & Biases Project Report](https://wandb.ai/cpipes3-western-governors-university/nyc_airbnb/reports/NYC_Airbnb--VmlldzoxNDAxMzQxNA?accessToken=pnp4zvyqmy7oe3gx7er2p5f6rn9frgyt8kk94pgsuttbq4tjz8ii0mr6cfidigq7)
+
+- [Github Repository](https://github.com/cpipes3/Project-Build-an-ML-Pipeline-Starter)
 
 ## Table of contents
 
